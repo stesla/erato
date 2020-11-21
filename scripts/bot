@@ -9,7 +9,7 @@ from discord.ext.commands import NoPrivateMessage
 from discord.ext.commands.errors import BadArgument
 
 sys.path.insert(1, os.path.dirname(os.path.dirname(__file__)))
-import erato
+from erato import *
 
 # load our environment
 load_dotenv()
@@ -22,7 +22,7 @@ logging.basicConfig(encoding='utf-8', level=LEVEL,
 logger = logging.getLogger(__name__)
 
 #configure our bot
-bot = erato.Bot(command_prefix="!")
+bot = Bot(command_prefix="!")
 
 @bot.check
 async def globally_block_dms(ctx):
@@ -47,45 +47,43 @@ async def character(ctx):
 async def create(ctx):
     try:
         ctx.create_character()
-        await ctx.send(f'Created your character, {ctx.message.author.nick}!')
-    except erato.CharacterExists:
-        await ctx.send(f'You already have a character, {ctx.message.author.nick}!')
+        await ctx.send(f'Created your character, {ctx.nick}!')
+    except CharacterExists:
+        await ctx.send(f'You already have a character, {ctx.nick}!')
 
-@character.command()
-async def stat(ctx, stat: erato.valid_stat, value: int):
+async def set_attribute(ctx, attribute, value):
     try:
-        ctx.set_character_attribute(stat, value)
-        await ctx.send(f'Set {stat} to {value} for you, {ctx.message.author.nick}.')
-    except erato.Character.DoesNotExist:
-        await ctx.send(f"You don't have a character yet, {ctx.message.author.nick}!")
+        ctx.set_character_attribute(attribute, value)
+        await ctx.send(f'Set, {ctx.nick}!')
+    except Character.DoesNotExist:
+        await ctx.send(f"You don't have a character yet, {ctx.nick}!")
 
-@stat.error
-async def stat_error(ctx, error):
+async def set_attribute_error(ctx, error, attribute_type, valid_attributes, valid_value):
     if isinstance(error, BadArgument):
-        if isinstance(error.__cause__, erato.InvalidStat):
-            await ctx.send('Stat must be one of: daring, grace, heart, wit, or spirit.')
+        if isinstance(error.__cause__, Invalid):
+            valid = ', '.join(valid_values)
+            await ctx.send(f'{attribute_type} must be one of: {valid}.')
         else:
-            await ctx.send('Value must be an integer.')
+            await ctx.send(f'Value must be {valid_value}.')
     else:
         raise error
 
+
 @character.command()
-async def condition(ctx, cond: erato.valid_condition, value: bool):
-    try:
-        ctx.set_character_attribute(cond, value)
-        await ctx.send(f'Set {cond} to {value} for you, {ctx.message.author.nick}.')
-    except erato.Character.DoesNotExist:
-        await ctx.send(f"You don't have a character yet, {ctx.message.author.nick}!")
+async def trait(ctx, trait: valid(TRAITS), value: int):
+    await set_attribute(ctx, trait, value)
+
+@trait.error
+async def trait_error(ctx, error):
+    await set_attribute_error(ctx, error, 'Trait', TRAITS, 'an integer')
+
+@character.command()
+async def condition(ctx, condition: valid(CONDITIONS), value: bool):
+    await set_attribute(ctx, condition, value)
 
 @condition.error
 async def condition_error(ctx, error):
-    if isinstance(error, BadArgument):
-        if isinstance(error.__cause__, erato.InvalidCondition):
-            await ctx.send('Stat must be one of: angry, frightened, guilty, hopeless, or insecure.')
-        else:
-            await ctx.send('Value must be true or false.')
-    else:
-        raise error
+    await set_attribute_error(ctx, error, 'Condition', CONDITIONS, 'true or false')
 
 # run
 bot.run(TOKEN)

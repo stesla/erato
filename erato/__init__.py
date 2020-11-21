@@ -8,6 +8,9 @@ from .model import db, Character
 
 logger = logging.getLogger(__name__)
 
+TRAITS = ('daring', 'grace', 'heart', 'wit', 'spirit')
+CONDITIONS = ('angry', 'frightened', 'guilty', 'hopeless', 'insecure')
+
 class CharacterExists(Exception):
     pass
 
@@ -24,6 +27,10 @@ class Context(commands.Context):
         except Character.DoesNotExist:
             char = Character(user_id=user_id, guild_id=guild_id)
             char.save()
+
+    @property
+    def nick(self):
+        return self.message.author.nick
 
     def roll(self, ndice, nsides):
         dice = [random.choice(range(1, nsides + 1)) for _ in range(ndice)]
@@ -50,22 +57,14 @@ class Bot(commands.Bot):
         else:
             await super().on_command_error(ctx, error)
 
-class InvalidStat(Exception):
+class Invalid(Exception):
     pass
 
-def valid_stat(argument):
-    lowered = argument.lower()
-    if lowered in ('daring', 'grace', 'heart', 'wit', 'spirit'):
-        return lowered
-    else:
-        raise InvalidStat(f'{argument} is not a valid stat')
-
-class InvalidCondition(Exception):
-    pass
-
-def valid_condition(argument):
-    lowered = argument.lower()
-    if lowered in ('angry', 'frightened', 'guilty', 'hopeless', 'insecure'):
-        return lowered
-    else:
-        raise InvalidCondition(f'{argument} is not a valid condition')
+def valid(valid_values):
+    def f(argument):
+        lowered = argument.lower()
+        if lowered in valid_values:
+            return lowered
+        else:
+            raise Invalid()
+    return f
