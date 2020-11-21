@@ -36,8 +36,8 @@ async def globally_block_dms(ctx):
     return True
 
 @bot.command()
-async def roll(ctx, trait: valid_trait, modifier: typing.Optional[int] = 0):
-    msg = ctx.roll(trait, modifier)
+async def roll(ctx, stat: typing.Optional[valid_stat], modifier: typing.Optional[int]):
+    msg = ctx.roll(stat, modifier)
     await ctx.send(msg)
 
 @roll.error
@@ -63,12 +63,17 @@ async def create(ctx):
 
 @character.command(aliases=('sheet','sh','st'))
 async def stats(ctx, member: typing.Optional[Member]):
-    await ctx.display_stats(member)
+    if member is None:
+        member = ctx.message.author
+    msg = f'Stats for {member.nick}:'
+    for (stat, value) in ctx.list_stats(member):
+        msg += f'\n\t{stat.capitalize()}:\t{value}'
+    await ctx.send(msg)
 
 @character.command()
-async def set(ctx, trait: valid_trait, value: int):
+async def set(ctx, stat: valid_stat, value: int):
     try:
-        ctx.set_character_attribute(trait, value)
+        ctx.set_character_attribute(stat, value)
         await ctx.send(f'Set!')
 
     except Character.DoesNotExist:
@@ -100,11 +105,11 @@ async def give(ctx, owner: Member):
 @strings.command(aliases=('ls',))
 async def list(ctx, owner: Member):
     if ctx.invoked_subcommand is None:
-        msg = ''
+        msg = f'Strings for {owner.nick}:'
         for (member, count) in ctx.list_strings(owner):
             if member is None:
                 member = ctx.message.author
-            msg += f'{member.nick}: {count}\n'
+            msg += f'\n\t{member.nick}:\t{count}'
         await ctx.send(msg)
 
 @list.error

@@ -8,7 +8,7 @@ from .model import *
 
 logger = logging.getLogger(__name__)
 
-TRAITS = ('daring', 'grace', 'heart', 'wit', 'spirit')
+STATS = ('daring', 'grace', 'heart', 'wit', 'spirit')
 
 class CharacterExists(Exception):
     pass
@@ -48,13 +48,15 @@ class Context(commands.Context):
             yield (member, row.count)
 
 
-    def roll(self, trait, modifier):
+    def roll(self, stat, modifier):
         ndice, nsides = 6, 2
         dice = [random.choice(range(1, nsides + 1)) for _ in range(ndice)]
-        char = self.character
         sum = reduce(lambda a, b: a + b, dice)
-        sum += getattr(self.character, trait)
-        sum += modifier
+        if stat is not None:
+            char = self.character
+            sum += getattr(self.character, stat)
+        if modifier is not None:
+            sum += modifier
         if sum >= 10:
             return f'Up Beat ({sum})'
         elif sum >= 7:
@@ -62,12 +64,10 @@ class Context(commands.Context):
         else:
             return f'Down Beat ({sum})'
 
-    async def display_stats(self, user):
-        if user is None:
-            user = self.message.author
-        char = Character.lookup(user.id, self.guild.id)
-        msg = f'Daring: {char.daring}\nGrace: {char.grace}\nHeart: {char.heart}\nWit: {char.wit}\nSpirit: {char.spirit}'
-        await self.send(msg)
+    def list_stats(self, user):
+       char = Character.lookup(user.id, self.guild.id)
+       for s in STATS:
+           yield (s, getattr(char, s))
 
     @db.atomic()
     def set_character_attribute(self, stat, value):
@@ -93,9 +93,9 @@ class Invalid(Exception):
     def __str__(self):
         return f'{self.typ} must be one of: {self.values}.'
 
-def valid_trait(argument):
+def valid_stat(argument):
     lowered = argument.lower()
-    if lowered in TRAITS:
+    if lowered in STATS:
         return lowered
     else:
-        raise Invalid('Trait', TRAITS)
+        raise Invalid('Stat', STATS)
