@@ -6,6 +6,7 @@ import typing
 
 from dotenv import load_dotenv
 from discord.ext.commands import NoPrivateMessage
+from discord.ext.commands.errors import BadArgument
 
 sys.path.insert(1, os.path.dirname(os.path.dirname(__file__)))
 import erato
@@ -45,10 +46,46 @@ async def character(ctx):
 @character.command()
 async def create(ctx):
     try:
-        ctx.create_character(ctx.message.author.id, ctx.guild.id)
+        ctx.create_character()
         await ctx.send(f'Created your character, {ctx.message.author.nick}!')
     except erato.CharacterExists:
         await ctx.send(f'You already have a character, {ctx.message.author.nick}!')
+
+@character.command()
+async def stat(ctx, stat: erato.valid_stat, value: int):
+    try:
+        ctx.set_character_attribute(stat, value)
+        await ctx.send(f'Set {stat} to {value} for you, {ctx.message.author.nick}.')
+    except erato.Character.DoesNotExist:
+        await ctx.send(f"You don't have a character yet, {ctx.message.author.nick}!")
+
+@stat.error
+async def stat_error(ctx, error):
+    if isinstance(error, BadArgument):
+        if isinstance(error.__cause__, erato.InvalidStat):
+            await ctx.send('Stat must be one of: daring, grace, heart, wit, or spirit.')
+        else:
+            await ctx.send('Value must be an integer.')
+    else:
+        raise error
+
+@character.command()
+async def condition(ctx, cond: erato.valid_condition, value: bool):
+    try:
+        ctx.set_character_attribute(cond, value)
+        await ctx.send(f'Set {cond} to {value} for you, {ctx.message.author.nick}.')
+    except erato.Character.DoesNotExist:
+        await ctx.send(f"You don't have a character yet, {ctx.message.author.nick}!")
+
+@condition.error
+async def condition_error(ctx, error):
+    if isinstance(error, BadArgument):
+        if isinstance(error.__cause__, erato.InvalidCondition):
+            await ctx.send('Stat must be one of: angry, frightened, guilty, hopeless, or insecure.')
+        else:
+            await ctx.send('Value must be true or false.')
+    else:
+        raise error
 
 # run
 bot.run(TOKEN)
