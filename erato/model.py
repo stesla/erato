@@ -29,6 +29,13 @@ class Character(BaseModel):
 
 Character.add_index(Character.user_id, Character.guild_id, unique=True)
 
+class String(BaseModel):
+    class Meta:
+        table_name = 'strings'
+
+    owner = ForeignKeyField(Character, backref='strings')
+    target = ForeignKeyField(Character)
+
 def initialize():
     db.connect()
-    db.create_tables([Character])
+    db.create_tables([Character, String])

@@ -7,7 +7,7 @@ import typing
 from dotenv import load_dotenv
 from discord import Member
 from discord.ext.commands import NoPrivateMessage
-from discord.ext.commands.errors import BadArgument
+from discord.ext.commands.errors import BadArgument, MissingRequiredArgument, MemberNotFound
 
 sys.path.insert(1, os.path.dirname(os.path.dirname(__file__)))
 from erato import *
@@ -48,13 +48,10 @@ async def roll_error(ctx, error):
     else:
         raise error
 
-@bot.command()
-async def hello(ctx):
-    await ctx.send(f'Hello, {ctx.message.author.id} on {ctx.guild.id}!')
-
 @bot.group(aliases=('char', 'ch'))
 async def character(ctx):
-    pass
+    if ctx.invoked_subcommand is None:
+        await ctx.send('Invalid character command passed.')
 
 @character.command()
 async def create(ctx):
@@ -84,6 +81,38 @@ async def set_error(ctx, error):
             await ctx.send(error.__cause__)
         else:
             await ctx.send(f'Value must be an integer.')
+    else:
+        raise error
+
+@bot.group(aliases=('st',))
+async def strings(ctx):
+    if ctx.invoked_subcommand is None:
+        await ctx.send('Invalid strings command passed.')
+
+@strings.command()
+async def give(ctx, owner: Member):
+    try:
+        total = ctx.give_string(owner)
+        await ctx.send(f'{owner.nick} now has {total} strings on {ctx.message.author.nick}.')
+    except Character.DoesNotExist:
+        await ctx.send('You both need to have characters to give a string.')
+
+@strings.command(aliases=('ls',))
+async def list(ctx, owner: Member):
+    if ctx.invoked_subcommand is None:
+        msg = ''
+        for (member, count) in ctx.list_strings(owner):
+            if member is None:
+                member = ctx.message.author
+            msg += f'{member.nick}: {count}\n'
+        await ctx.send(msg)
+
+@list.error
+async def strings_error(ctx, error):
+    if isinstance(error, MissingRequiredArgument):
+        await ctx.send('Whose strings do you want to see?')
+    elif isinstance(error, MemberNotFound):
+        await ctx.send(error)
     else:
         raise error
 

@@ -4,7 +4,7 @@ import logging
 from discord.ext import commands
 from functools import reduce
 
-from .model import db, Character
+from .model import *
 
 logger = logging.getLogger(__name__)
 
@@ -26,6 +26,27 @@ class Context(commands.Context):
        except Character.DoesNotExist:
             char = Character(user_id=self.message.author.id, guild_id=self.guild.id)
             char.save()
+
+    @db.atomic()
+    def give_string(self, member):
+        owner = Character.lookup(member.id, self.guild.id)
+        target = Character.lookup(self.message.author.id, self.guild.id)
+        string = String(owner=owner, target=target)
+        string.save()
+        return len(owner.strings.where(String.target == target))
+
+    @db.atomic()
+    def list_strings(self, member):
+        owner = Character.lookup(member.id, self.guild.id)
+        query = (Character
+                .select(Character.user_id, fn.COUNT(String.target_id).alias('count'))
+                .join(String, on=String.target)
+                .where(String.owner == owner)
+                .group_by(Character.user_id))
+        for row in query:
+            member = self.guild.get_member(row.user_id)
+            yield (member, row.count)
+
 
     def roll(self, trait, modifier):
         ndice, nsides = 6, 2
