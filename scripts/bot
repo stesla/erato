@@ -5,7 +5,7 @@ import sys
 import typing
 
 from dotenv import load_dotenv
-from pathlib import Path
+from discord.ext.commands import NoPrivateMessage
 
 sys.path.insert(1, os.path.dirname(os.path.dirname(__file__)))
 import erato
@@ -18,15 +18,25 @@ LEVEL = getattr(logging, os.getenv('LOG_LEVEL', 'INFO'))
 #configure logging
 logging.basicConfig(encoding='utf-8', level=LEVEL,
         format='%(asctime)s:%(levelname)s:%(name)s: %(message)s')
-logger = logging.getLogger(Path(__file__).resolve().name)
+logger = logging.getLogger(__name__)
 
 #configure our bot
 bot = erato.Bot(command_prefix="!")
+
+@bot.check
+async def globally_block_dms(ctx):
+    if ctx.guild is None:
+        raise NoPrivateMessage("This command cannot be used in private messages.")
+    return True
 
 @bot.command()
 async def roll(ctx, ndice: typing.Optional[int] = 2, nsides: typing.Optional[int] = 6):
     msg = ctx.roll(ndice, nsides)
     await ctx.send(msg)
+
+@bot.command()
+async def hello(ctx):
+    await ctx.send(f'Hello, {ctx.message.author.nick}!')
 
 # run
 bot.run(TOKEN)

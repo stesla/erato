@@ -1,7 +1,10 @@
 import random
+import logging
 
 from discord.ext import commands
 from functools import reduce
+
+logger = logging.getLogger(__name__)
 
 class Context(commands.Context):
     def roll(self, ndice, nsides):
@@ -13,4 +16,8 @@ class Bot(commands.Bot):
     async def get_context(self, message, *, cls=Context):
         return await super().get_context(message, cls=cls)
 
-
+    async def on_command_error(self, ctx, error):
+        if isinstance(error, commands.NoPrivateMessage):
+            await ctx.send(error)
+        else:
+            super()
