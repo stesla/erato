@@ -5,6 +5,7 @@ import sys
 import typing
 
 from dotenv import load_dotenv
+from discord import Member
 from discord.ext.commands import NoPrivateMessage
 from discord.ext.commands.errors import BadArgument
 
@@ -55,7 +56,7 @@ async def hello(ctx):
 async def character(ctx):
     pass
 
-@character.command(aliases=('cr',))
+@character.command()
 async def create(ctx):
     try:
         ctx.create_character()
@@ -63,8 +64,12 @@ async def create(ctx):
     except CharacterExists:
         await ctx.send(f'You already have a character!')
 
-@character.command(aliases=('t', 'tr'))
-async def trait(ctx, trait: valid_trait, value: int):
+@character.command(aliases=('sheet','sh','st'))
+async def stats(ctx, member: typing.Optional[Member]):
+    await ctx.display_stats(member)
+
+@character.command()
+async def set(ctx, trait: valid_trait, value: int):
     try:
         ctx.set_character_attribute(trait, value)
         await ctx.send(f'Set!')
@@ -72,8 +77,8 @@ async def trait(ctx, trait: valid_trait, value: int):
     except Character.DoesNotExist:
         await ctx.send(f"You don't have a character yet!")
 
-@trait.error
-async def trait_error(ctx, error):
+@set.error
+async def set_error(ctx, error):
     if isinstance(error, BadArgument):
         if isinstance(error.__cause__, Invalid):
             await ctx.send(error.__cause__)

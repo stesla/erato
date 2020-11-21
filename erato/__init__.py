@@ -16,8 +16,7 @@ class CharacterExists(Exception):
 class Context(commands.Context):
     @property
     def character(self):
-        return Character.get((Character.user_id == self.message.author.id) &
-                             (Character.guild_id == self.guild.id))
+        return Character.lookup(self.message.author.id, self.guild.id)
 
     @db.atomic()
     def create_character(self):
@@ -42,6 +41,12 @@ class Context(commands.Context):
         else:
             return f'Down Beat ({sum})'
 
+    async def display_stats(self, user):
+        if user is None:
+            user = self.message.author
+        char = Character.lookup(user.id, self.guild.id)
+        msg = f'Daring: {char.daring}\nGrace: {char.grace}\nHeart: {char.heart}\nWit: {char.wit}\nSpirit: {char.spirit}'
+        await self.send(msg)
 
     @db.atomic()
     def set_character_attribute(self, stat, value):

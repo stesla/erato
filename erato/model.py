@@ -23,6 +23,10 @@ class Character(BaseModel):
     wit = IntegerField(default=0)
     spirit = IntegerField(default=0)
 
+    @classmethod
+    def lookup(cls, user_id, guild_id):
+        return cls.get((cls.user_id == user_id) & (cls.guild_id == guild_id))
+
 Character.add_index(Character.user_id, Character.guild_id, unique=True)
 
 def initialize():
