@@ -36,7 +36,19 @@ async def roll(ctx, ndice: typing.Optional[int] = 2, nsides: typing.Optional[int
 
 @bot.command()
 async def hello(ctx):
-    await ctx.send(f'Hello, {ctx.message.author.nick}!')
+    await ctx.send(f'Hello, {ctx.message.author.id} on {ctx.guild.id}!')
+
+@bot.group()
+async def character(ctx):
+    pass
+
+@character.command()
+async def create(ctx):
+    try:
+        ctx.create_character(ctx.message.author.id, ctx.guild.id)
+        await ctx.send(f'Created your character, {ctx.message.author.nick}!')
+    except erato.CharacterExists:
+        await ctx.send(f'You already have a character, {ctx.message.author.nick}!')
 
 # run
 bot.run(TOKEN)
