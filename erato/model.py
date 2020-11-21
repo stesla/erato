@@ -23,6 +23,9 @@ class Character(BaseModel):
     wit = IntegerField(default=0)
     spirit = IntegerField(default=0)
 
+    # other fields
+    xp = IntegerField(default=0)
+
     @classmethod
     def lookup(cls, user_id, guild_id):
         return cls.get((cls.user_id == user_id) & (cls.guild_id == guild_id))

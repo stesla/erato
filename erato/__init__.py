@@ -14,14 +14,22 @@ class CharacterExists(Exception):
     pass
 
 class Context(commands.Context):
-    @property
-    def character(self):
-        return Character.lookup(self.message.author.id, self.guild.id)
+    @db.atomic()
+    def award_xp(self, member):
+        char = self.character(member)
+        char.xp += 1
+        char.save()
+        return char.xp
+
+    def character(self, member=None):
+        if member is None:
+            member = self.message.author
+        return Character.lookup(member.id, self.guild.id)
 
     @db.atomic()
     def create_character(self):
        try:
-            self.character
+            self.character()
             raise CharacterExists()
        except Character.DoesNotExist:
             char = Character(user_id=self.message.author.id, guild_id=self.guild.id)
@@ -53,8 +61,8 @@ class Context(commands.Context):
         dice = [random.choice(range(1, nsides + 1)) for _ in range(ndice)]
         sum = reduce(lambda a, b: a + b, dice)
         if stat is not None:
-            char = self.character
-            sum += getattr(self.character, stat)
+            char = self.character()
+            sum += getattr(char, stat)
         if modifier is not None:
             sum += modifier
         if sum >= 10:
@@ -70,8 +78,14 @@ class Context(commands.Context):
            yield (s, getattr(char, s))
 
     @db.atomic()
+    def reset_xp(self, member):
+        char = self.character(member)
+        char.xp = 0
+        char.save()
+
+    @db.atomic()
     def set_character_attribute(self, stat, value):
-        char = self.character
+        char = self.character()
         setattr(char, stat, value)
         char.save()
 

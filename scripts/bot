@@ -65,10 +65,13 @@ async def create(ctx):
 async def stats(ctx, member: typing.Optional[Member]):
     if member is None:
         member = ctx.message.author
-    msg = f'Stats for {member.nick}:'
-    for (stat, value) in ctx.list_stats(member):
-        msg += f'\n\t{stat.capitalize()}:\t{value}'
-    await ctx.send(msg)
+    try:
+        msg = f'Stats for {member.nick}:'
+        for (stat, value) in ctx.list_stats(member):
+            msg += f'\n\t{stat.capitalize()}:\t{value}'
+        await ctx.send(msg)
+    except Character.DoesNotExist:
+        await ctx.send(f"You don't have a character yet!")
 
 @character.command()
 async def set(ctx, stat: valid_stat, value: int):
@@ -102,15 +105,14 @@ async def give(ctx, owner: Member):
     except Character.DoesNotExist:
         await ctx.send('You both need to have characters to give a string.')
 
-@strings.command(aliases=('ls',))
+@strings.command(aliases=('ls','l','look'))
 async def list(ctx, owner: Member):
-    if ctx.invoked_subcommand is None:
-        msg = f'Strings for {owner.nick}:'
-        for (member, count) in ctx.list_strings(owner):
-            if member is None:
-                member = ctx.message.author
-            msg += f'\n\t{member.nick}:\t{count}'
-        await ctx.send(msg)
+    msg = f'Strings for {owner.nick}:'
+    for (member, count) in ctx.list_strings(owner):
+        if member is None:
+            member = ctx.message.author
+        msg += f'\n\t{member.nick}:\t{count}'
+    await ctx.send(msg)
 
 @list.error
 async def strings_error(ctx, error):
@@ -120,6 +122,26 @@ async def strings_error(ctx, error):
         await ctx.send(error)
     else:
         raise error
+
+@bot.group()
+async def xp(ctx):
+    if ctx.invoked_subcommand is None:
+        await ctx.send('Invalid xp command passed.')
+
+@xp.command(aliases=('l',))
+async def look(ctx, member: Member):
+    char = ctx.character(member)
+    await ctx.send(f'{member.nick} has {char.xp} XP.')
+
+@xp.command(aliases=('a','g','give'))
+async def award(ctx, member: Member):
+    xp = ctx.award_xp(member)
+    await ctx.send(f'Awarded XP! {member.nick} now has {xp} XP.')
+
+@xp.command(aliases=('r','z','zero'))
+async def reset(ctx, member: Member):
+    ctx.reset_xp(member)
+    await ctx.send(f"{member.nick}'s XP reset to zero.")
 
 # run
 bot.run(TOKEN)
