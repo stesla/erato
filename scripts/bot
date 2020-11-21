@@ -24,6 +24,10 @@ logger = logging.getLogger(__name__)
 #configure our bot
 bot = Bot(command_prefix="!")
 
+@bot.event
+async def on_ready():
+    logging.info(f'Logged in as {bot.user}')
+
 @bot.check
 async def globally_block_dms(ctx):
     if ctx.guild is None:
