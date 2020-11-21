@@ -31,15 +31,23 @@ async def globally_block_dms(ctx):
     return True
 
 @bot.command()
-async def roll(ctx, ndice: typing.Optional[int] = 2, nsides: typing.Optional[int] = 6):
-    msg = ctx.roll(ndice, nsides)
+async def roll(ctx, trait: valid_trait, modifier: typing.Optional[int] = 0):
+    msg = ctx.roll(trait, modifier)
     await ctx.send(msg)
+
+@roll.error
+async def roll_error(ctx, error):
+    if isinstance(error, BadArgument):
+        if isinstance(error.__cause__, InvalidTrait):
+            await ctx.send(error.__cause__)
+    else:
+        raise error
 
 @bot.command()
 async def hello(ctx):
     await ctx.send(f'Hello, {ctx.message.author.id} on {ctx.guild.id}!')
 
-@bot.group(aliases=('char', 'c'))
+@bot.group(aliases=('char', 'ch'))
 async def character(ctx):
     pass
 
@@ -51,38 +59,24 @@ async def create(ctx):
     except CharacterExists:
         await ctx.send(f'You already have a character!')
 
-async def set_attribute(ctx, attribute, value):
+@character.command(aliases=('t', 'tr'))
+async def trait(ctx, trait: valid_trait, value: int):
     try:
-        ctx.set_character_attribute(attribute, value)
+        ctx.set_character_attribute(trait, value)
         await ctx.send(f'Set!')
+
     except Character.DoesNotExist:
         await ctx.send(f"You don't have a character yet!")
 
-async def set_attribute_error(ctx, error, attribute_type, valid_attributes, valid_value):
-    if isinstance(error, BadArgument):
-        if isinstance(error.__cause__, Invalid):
-            valid = ', '.join(valid_attributes)
-            await ctx.send(f'{attribute_type} must be one of: {valid}.')
-        else:
-            await ctx.send(f'Value must be {valid_value}.')
-    else:
-        raise error
-
-@character.command(aliases=('tr',))
-async def trait(ctx, trait: valid(TRAITS), value: int):
-    await set_attribute(ctx, trait, value)
-
 @trait.error
 async def trait_error(ctx, error):
-    await set_attribute_error(ctx, error, 'Trait', TRAITS, 'an integer')
-
-@character.command(aliases=('cond', 'co'))
-async def condition(ctx, condition: valid(CONDITIONS), value: bool):
-    await set_attribute(ctx, condition, value)
-
-@condition.error
-async def condition_error(ctx, error):
-    await set_attribute_error(ctx, error, 'Condition', CONDITIONS, 'true or false')
+    if isinstance(error, BadArgument):
+        if isinstance(error.__cause__, InvalidTrait):
+            await ctx.send(error.__cause__)
+        else:
+            await ctx.send(f'Value must be an integer.')
+    else:
+        raise error
 
 # run
 bot.run(TOKEN)

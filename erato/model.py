@@ -23,13 +23,6 @@ class Character(BaseModel):
     wit = IntegerField(default=0)
     spirit = IntegerField(default=0)
 
-    # conditions
-    angry = BooleanField(default=False)
-    frightened = BooleanField(default=False)
-    guilty = BooleanField(default=False)
-    hopeless = BooleanField(default=False)
-    insecure = BooleanField(default=False)
-
 Character.add_index(Character.user_id, Character.guild_id, unique=True)
 
 def initialize():

@@ -15,31 +15,38 @@ class CharacterExists(Exception):
     pass
 
 class Context(commands.Context):
+    @property
+    def character(self):
+        return Character.get((Character.user_id == self.message.author.id) &
+                             (Character.guild_id == self.guild.id))
+
     @db.atomic()
     def create_character(self):
-        user_id = self.message.author.id
-        guild_id = self.guild.id
-        try:
-            Character.get(
-                (Character.user_id == user_id) &
-                (Character.guild_id == guild_id))
+       try:
+            self.character
             raise CharacterExists()
-        except Character.DoesNotExist:
-            char = Character(user_id=user_id, guild_id=guild_id)
+       except Character.DoesNotExist:
+            char = Character(user_id=self.message.author.id, guild_id=self.guild.id)
             char.save()
 
-    def roll(self, ndice, nsides):
+    def roll(self, trait, modifier):
+        ndice, nsides = 6, 2
         dice = [random.choice(range(1, nsides + 1)) for _ in range(ndice)]
+        char = self.character
         sum = reduce(lambda a, b: a + b, dice)
-        return ' + '.join(map(lambda d: str(d), dice)) + ' = ' + str(sum)
+        sum += getattr(self.character, trait)
+        sum += modifier
+        if sum >= 10:
+            return f'Up Beat ({sum})'
+        elif sum >= 7:
+            return f'Mixed Beat ({sum})'
+        else:
+            return f'Down Beat ({sum})'
+
 
     @db.atomic()
     def set_character_attribute(self, stat, value):
-        user_id = self.message.author.id
-        guild_id = self.guild.id
-        char = Character.get(
-            (Character.user_id == user_id) &
-            (Character.guild_id == guild_id))
+        char = self.character
         setattr(char, stat, value)
         char.save()
 
@@ -53,14 +60,13 @@ class Bot(commands.Bot):
         else:
             await super().on_command_error(ctx, error)
 
-class Invalid(Exception):
+class InvalidTrait(Exception):
     pass
 
-def valid(valid_values):
-    def f(argument):
-        lowered = argument.lower()
-        if lowered in valid_values:
-            return lowered
-        else:
-            raise Invalid()
-    return f
+def valid_trait(argument):
+    lowered = argument.lower()
+    if lowered in TRAITS:
+        return lowered
+    else:
+        traits = ', '.join(TRAITS)
+        raise InvalidTrait(f'Trait must be one of: {traits}.')
