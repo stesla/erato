@@ -9,7 +9,6 @@ from .model import db, Character
 logger = logging.getLogger(__name__)
 
 TRAITS = ('daring', 'grace', 'heart', 'wit', 'spirit')
-CONDITIONS = ('angry', 'frightened', 'guilty', 'hopeless', 'insecure')
 
 class CharacterExists(Exception):
     pass
@@ -60,13 +59,17 @@ class Bot(commands.Bot):
         else:
             await super().on_command_error(ctx, error)
 
-class InvalidTrait(Exception):
-    pass
+class Invalid(Exception):
+    def __init__(self, typ, values):
+        self.typ = typ
+        self.values = ', '.join(values)
+
+    def __str__(self):
+        return f'{self.typ} must be one of: {self.values}.'
 
 def valid_trait(argument):
     lowered = argument.lower()
     if lowered in TRAITS:
         return lowered
     else:
-        traits = ', '.join(TRAITS)
-        raise InvalidTrait(f'Trait must be one of: {traits}.')
+        raise Invalid('Trait', TRAITS)

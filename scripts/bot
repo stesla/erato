@@ -42,7 +42,7 @@ async def roll(ctx, trait: valid_trait, modifier: typing.Optional[int] = 0):
 @roll.error
 async def roll_error(ctx, error):
     if isinstance(error, BadArgument):
-        if isinstance(error.__cause__, InvalidTrait):
+        if isinstance(error.__cause__, Invalid):
             await ctx.send(error.__cause__)
     else:
         raise error
@@ -75,7 +75,7 @@ async def trait(ctx, trait: valid_trait, value: int):
 @trait.error
 async def trait_error(ctx, error):
     if isinstance(error, BadArgument):
-        if isinstance(error.__cause__, InvalidTrait):
+        if isinstance(error.__cause__, Invalid):
             await ctx.send(error.__cause__)
         else:
             await ctx.send(f'Value must be an integer.')
