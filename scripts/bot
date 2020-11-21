@@ -39,37 +39,36 @@ async def roll(ctx, ndice: typing.Optional[int] = 2, nsides: typing.Optional[int
 async def hello(ctx):
     await ctx.send(f'Hello, {ctx.message.author.id} on {ctx.guild.id}!')
 
-@bot.group()
+@bot.group(aliases=('char', 'c'))
 async def character(ctx):
     pass
 
-@character.command()
+@character.command(aliases=('cr',))
 async def create(ctx):
     try:
         ctx.create_character()
-        await ctx.send(f'Created your character, {ctx.nick}!')
+        await ctx.send('Character created!')
     except CharacterExists:
-        await ctx.send(f'You already have a character, {ctx.nick}!')
+        await ctx.send(f'You already have a character!')
 
 async def set_attribute(ctx, attribute, value):
     try:
         ctx.set_character_attribute(attribute, value)
-        await ctx.send(f'Set, {ctx.nick}!')
+        await ctx.send(f'Set!')
     except Character.DoesNotExist:
-        await ctx.send(f"You don't have a character yet, {ctx.nick}!")
+        await ctx.send(f"You don't have a character yet!")
 
 async def set_attribute_error(ctx, error, attribute_type, valid_attributes, valid_value):
     if isinstance(error, BadArgument):
         if isinstance(error.__cause__, Invalid):
-            valid = ', '.join(valid_values)
+            valid = ', '.join(valid_attributes)
             await ctx.send(f'{attribute_type} must be one of: {valid}.')
         else:
             await ctx.send(f'Value must be {valid_value}.')
     else:
         raise error
 
-
-@character.command()
+@character.command(aliases=('tr',))
 async def trait(ctx, trait: valid(TRAITS), value: int):
     await set_attribute(ctx, trait, value)
 
@@ -77,7 +76,7 @@ async def trait(ctx, trait: valid(TRAITS), value: int):
 async def trait_error(ctx, error):
     await set_attribute_error(ctx, error, 'Trait', TRAITS, 'an integer')
 
-@character.command()
+@character.command(aliases=('cond', 'co'))
 async def condition(ctx, condition: valid(CONDITIONS), value: bool):
     await set_attribute(ctx, condition, value)
 

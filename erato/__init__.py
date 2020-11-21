@@ -28,10 +28,6 @@ class Context(commands.Context):
             char = Character(user_id=user_id, guild_id=guild_id)
             char.save()
 
-    @property
-    def nick(self):
-        return self.message.author.nick
-
     def roll(self, ndice, nsides):
         dice = [random.choice(range(1, nsides + 1)) for _ in range(ndice)]
         sum = reduce(lambda a, b: a + b, dice)
