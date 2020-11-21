@@ -13,6 +13,9 @@ STATS = ('daring', 'grace', 'heart', 'wit', 'spirit')
 class CharacterExists(Exception):
     pass
 
+class NoStrings(Exception):
+    pass
+
 class Context(commands.Context):
     @db.atomic()
     def award_xp(self, member):
@@ -88,6 +91,19 @@ class Context(commands.Context):
         char = self.character()
         setattr(char, stat, value)
         char.save()
+
+    @db.atomic()
+    def spend_string(self, member):
+        target = self.character(member)
+        owner = self.character(self.message.author)
+        strings = owner.strings.where(String.target == target)
+        logger.info(f'{strings} {len(strings)}')
+        if len(strings) == 0:
+            raise NoStrings
+        String.delete_by_id(strings[0].id)
+        return len(strings) - 1
+
+
 
 class Bot(commands.Bot):
     async def get_context(self, message, *, cls=Context):
