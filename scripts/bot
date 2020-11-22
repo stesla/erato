@@ -62,9 +62,7 @@ async def create(ctx):
         await ctx.send(f'You already have a character!')
 
 @character.command(aliases=('sheet','sh','st'))
-async def stats(ctx, member: typing.Optional[Member]):
-    if member is None:
-        member = ctx.message.author
+async def stats(ctx, member: Member):
     try:
         msg = f'Stats for {member.nick}:'
         for (stat, value) in ctx.list_stats(member):
