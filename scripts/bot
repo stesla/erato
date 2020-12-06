@@ -11,6 +11,7 @@ from discord.ext.commands.errors import BadArgument, MissingRequiredArgument, Me
 
 sys.path.insert(1, os.path.dirname(os.path.dirname(__file__)))
 from erato import *
+from erato.model import movesdb
 
 # load our environment
 load_dotenv()
@@ -156,6 +157,43 @@ async def award(ctx, member: Member):
 async def reset(ctx, member: Member):
     ctx.reset_xp(member)
     await ctx.send(f"{member.nick}'s XP reset to zero.")
+
+@bot.group()
+async def moves(ctx):
+    if ctx.invoked_subcommand is None:
+        await ctx.send('Invalid moves command passed.')
+
+@moves.command()
+async def list(ctx, move: typing.Optional[str]):
+    if move is None:
+        list = '\n\t'.join(sorted(k.title() for k in model.movesdb.moves))
+        await ctx.send(f"""```
+!moves list [move]
+
+Use this command with the name of a move to see the listing for that move. You do not have to provide the entire move name, just a word that is unique to it (e.g. '!moves list advance' for 'String Advance'). You can also quote the entire name (e.g. '!moves list "end of session"').
+
+Available moves: \n\t{list}```""")
+    else:
+        moveKey = None
+        for key in movesdb.moves:
+            if move.lower() in key.lower():
+                moveKey = key
+                break
+        if moveKey is None:
+            await ctx.send('Invalid move.')
+            return
+        m = movesdb.moves[moveKey]
+        parts = [m['description']]
+        if m.get('up') is not None:
+            parts.append(f"(10+): {m['up']}")
+        if m.get('mixed') is not None:
+            parts.append(f"(7-9): {m['mixed']}")
+        if m.get('all') is not None:
+            parts.append(f"{m['all']}")
+        text = "\n".join(parts)
+        await ctx.send(f'```{text}```')
+
+
 
 # run
 bot.run(TOKEN)

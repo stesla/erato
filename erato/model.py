@@ -1,4 +1,5 @@
 import os
+import yaml
 
 from peewee import *
 
@@ -31,6 +32,17 @@ class Character(BaseModel):
         return cls.get((cls.user_id == user_id) & (cls.guild_id == guild_id))
 
 Character.add_index(Character.user_id, Character.guild_id, unique=True)
+
+class MovesDatabase:
+    def __init__(self, filename):
+        with open(filename) as f:
+            self.data = yaml.load(f, Loader=yaml.FullLoader)
+
+    @property
+    def moves(self):
+        return self.data
+
+movesdb = MovesDatabase(os.getenv('MOVES', 'erato-moves.yaml'))
 
 class String(BaseModel):
     class Meta:
