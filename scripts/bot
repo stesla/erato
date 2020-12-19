@@ -147,8 +147,11 @@ async def moves(ctx, move: typing.Optional[str]):
         keys = [key for key in movesdb.moves]
 
     if len(keys) == 1:
-        m = movesdb.moves[keys[0]]
-        parts = [m['description']]
+        key = keys[0]
+        m = movesdb.moves[key]
+        title = key.title()
+        description = m['description']
+        parts = [f"{title}\n\n{description}"]
         if m.get('up') is not None:
             parts.append(f"(10+): {m['up']}")
         if m.get('mixed') is not None:
@@ -156,7 +159,7 @@ async def moves(ctx, move: typing.Optional[str]):
         if m.get('all') is not None:
             parts.append(f"{m['all']}")
         text = "\n".join(parts)
-        await ctx.send(f'```{text}```')
+        await ctx.send(f'```\n{text}\n```')
 
     else:
         list = '\n\t'.join(k.title() for k in sorted(keys))
