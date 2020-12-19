@@ -36,7 +36,7 @@ async def globally_block_dms(ctx):
         raise NoPrivateMessage("This command cannot be used in private messages.")
     return True
 
-@bot.command()
+@bot.command(help="Roll the dice")
 async def roll(ctx, stat: typing.Optional[valid_stat], modifier: typing.Optional[int]):
     msg = ctx.roll(stat, modifier)
     await ctx.send(msg)
@@ -49,12 +49,7 @@ async def roll_error(ctx, error):
     else:
         raise error
 
-@bot.group(aliases=('char', 'ch'))
-async def character(ctx):
-    if ctx.invoked_subcommand is None:
-        await ctx.send('Invalid character command passed.')
-
-@character.command()
+@bot.command(help="Create a character object for yourself")
 async def create(ctx):
     try:
         ctx.create_character()
@@ -62,17 +57,18 @@ async def create(ctx):
     except CharacterExists:
         await ctx.send(f'You already have a character!')
 
-@character.command(aliases=('sheet','sh','st'))
-async def stats(ctx, member: Member):
+@bot.command(aliases=('sheet',), help="View your or another character's stats")
+async def stats(ctx, member: typing.Optional[str]):
+    m = await ctx.maybe_member(member)
     try:
-        msg = f'Stats for {member.nick}:'
-        for (stat, value) in ctx.list_stats(member):
+        msg = f'Stats for {m.display_name}:'
+        for (stat, value) in ctx.list_stats(m):
             msg += f'\n\t{stat.capitalize()}:\t{value}'
         await ctx.send(msg)
     except Character.DoesNotExist:
         await ctx.send(f"You don't have a character yet!")
 
-@character.command()
+@bot.command(help="Set a stat")
 async def set(ctx, stat: valid_stat, value: int):
     try:
         ctx.set_character_attribute(stat, value)
@@ -91,42 +87,43 @@ async def set_error(ctx, error):
     else:
         raise error
 
-@bot.group(aliases=('st',))
-async def strings(ctx):
+@bot.group(help="Commands to deal with strings, see !help string")
+async def string(ctx):
     if ctx.invoked_subcommand is None:
         await ctx.send('Invalid strings command passed.')
 
-@strings.command()
-async def give(ctx, owner: Member):
+@string.command()
+async def give(ctx, target: Member):
     try:
-        total = ctx.give_string(owner)
+        total = ctx.give_string(target)
         strings = 'strings'
         if total == 1:
             strings = 'string'
-        await ctx.send(f'{owner.nick} now has {total} {strings} on {ctx.message.author.nick}.')
+        await ctx.send(f'{target.display_name} now has {total} {strings} on {ctx.message.author.display_name}.')
     except Character.DoesNotExist:
         await ctx.send('You both need to have characters to give a string.')
 
-@strings.command()
+@string.command()
 async def spend(ctx, target: Member):
     try:
         total = ctx.spend_string(target)
         strings = 'strings'
         if total == 1:
             strings = 'string'
-        await ctx.send(f'String spent! {ctx.message.author.nick} now has {total} {strings} on {target.nick}.')
+        await ctx.send(f'String spent! {ctx.message.author.display_name} now has {total} {strings} on {target.display_name}.')
     except Character.DoesNotExist:
         await ctx.send('You both need to have characters to spend a string.')
     except NoStrings:
-        await ctx.send(f'You do not have strings on {target.nick}.')
+        await ctx.send(f'You do not have strings on {target.display_name}.')
 
-@strings.command(aliases=('ls','l','look'))
-async def list(ctx, owner: Member):
-    msg = f'Strings for {owner.nick}:'
+@string.command(aliases=('ls','l','look'))
+async def list(ctx, member: typing.Optional[str]):
+    owner = await ctx.maybe_member(member)
+    msg = f'Strings for {owner.display_name}:'
     for (member, count) in ctx.list_strings(owner):
         if member is None:
             member = ctx.message.author
-        msg += f'\n\t{member.nick}:\t{count}'
+        msg += f'\n\t{member.display_name}:\t{count}'
     await ctx.send(msg)
 
 @list.error
@@ -138,51 +135,19 @@ async def strings_error(ctx, error):
     else:
         raise error
 
-@bot.group()
-async def xp(ctx):
-    if ctx.invoked_subcommand is None:
-        await ctx.send('Invalid xp command passed.')
-
-@xp.command(aliases=('l',))
-async def look(ctx, member: Member):
-    char = ctx.character(member)
-    await ctx.send(f'{member.nick} has {char.xp} XP.')
-
-@xp.command(aliases=('a','g','give'))
-async def award(ctx, member: Member):
-    xp = ctx.award_xp(member)
-    await ctx.send(f'Awarded XP! {member.nick} now has {xp} XP.')
-
-@xp.command(aliases=('r','z','zero'))
-async def reset(ctx, member: Member):
-    ctx.reset_xp(member)
-    await ctx.send(f"{member.nick}'s XP reset to zero.")
-
-@bot.group()
-async def moves(ctx):
-    if ctx.invoked_subcommand is None:
-        await ctx.send('Invalid moves command passed.')
-
-@moves.command()
-async def list(ctx, move: typing.Optional[str]):
-    if move is None:
-        list = '\n\t'.join(sorted(k.title() for k in model.movesdb.moves))
-        await ctx.send(f"""```
-!moves list [move]
-
-Use this command with the name of a move to see the listing for that move. You do not have to provide the entire move name, just a word that is unique to it (e.g. '!moves list advance' for 'String Advance'). You can also quote the entire name (e.g. '!moves list "end of session"').
-
-Available moves: \n\t{list}```""")
-    else:
-        moveKey = None
-        for key in movesdb.moves:
-            if move.lower() in key.lower():
-                moveKey = key
-                break
-        if moveKey is None:
-            await ctx.send('Invalid move.')
+@bot.command(help='Lists moves and their descriptions')
+async def moves(ctx, move: typing.Optional[str]):
+    if move is not None:
+        keys = [key for key in movesdb.moves
+                if move.lower() in key.lower()]
+        if len(keys) == 0:
+            await ctx.send(f'no moves match "{move}"')
             return
-        m = movesdb.moves[moveKey]
+    else:
+        keys = [key for key in movesdb.moves]
+
+    if len(keys) == 1:
+        m = movesdb.moves[keys[0]]
         parts = [m['description']]
         if m.get('up') is not None:
             parts.append(f"(10+): {m['up']}")
@@ -193,6 +158,14 @@ Available moves: \n\t{list}```""")
         text = "\n".join(parts)
         await ctx.send(f'```{text}```')
 
+    else:
+        list = '\n\t'.join(k.title() for k in sorted(keys))
+        await ctx.send(f"""```
+!moves [move]
+
+Use this command with the name of a move to see the listing for that move. You do not have to provide the entire move name, just a word that is unique to it (e.g. '!moves list advance' for 'String Advance'). You can also quote the entire name (e.g. '!moves list "end of session"').
+
+Available moves: \n\t{list}```""")
 
 
 # run

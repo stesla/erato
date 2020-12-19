@@ -2,6 +2,7 @@ import random
 import logging
 
 from discord.ext import commands
+from discord.ext.commands import MemberConverter
 from functools import reduce
 
 from .model import *
@@ -102,6 +103,14 @@ class Context(commands.Context):
             raise NoStrings
         String.delete_by_id(strings[0].id)
         return len(strings) - 1
+
+    async def maybe_member(self, argument):
+        try:
+            member = await MemberConverter().convert(self, argument)
+        except:
+            member = self.message.author
+        return member
+
 
 
 
